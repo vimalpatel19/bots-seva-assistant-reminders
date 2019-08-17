@@ -1,0 +1,20 @@
+{
+  "name": "bm-reminder-bot",
+  "version": "1.0.0",
+  "description": "BM Reminders Bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "utility"
+  ],
+  "author": "Vimal Patel",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "express": "^4.17.1"
+  }
+}
