@@ -1,15 +1,14 @@
 const axios = require('axios');
-const config = require('../config/config.json');
 
 // Sends a message
 const sendMessage = (msg) => {
-    const url = `https://api.telegram.org/bot${config.botKey}/sendMessage`;
+    const url = `https://api.telegram.org/bot${process.env.BOT_KEY}/sendMessage`;
     botAction(url, msg, "SEND MESSAGE");
 };
 
 // Send a poll
 const sendPoll = (poll) => {
-    const url = `https://api.telegram.org/bot${config.botKey}/sendPoll`;
+    const url = `https://api.telegram.org/bot${process.env.BOT_KEY}/sendPoll`;
     botAction(url, poll, "SEND POLL");
 };
 
