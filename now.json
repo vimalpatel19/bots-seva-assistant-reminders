@@ -1,16 +1,9 @@
 {
   "version": 2,
   "builds": [
-    { 
-      "env": { "BOT_KEY": "@bot-key"}
-    },
-    { 
-      "src": "index.js", "use": "@now/node-server" 
-    }
+    { "src": "index.js", "use": "@now/node-server" }
   ],
   "routes": [
-    { 
-      "src": "/(.*)", "dest": "/index.js" 
-    }
+    { "src": "/(.*)", "dest": "/index.js" }
   ]
 }
