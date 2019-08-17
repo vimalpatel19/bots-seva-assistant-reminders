@@ -11,6 +11,7 @@ app.get('/', (req, res) => {
     res.status(200).json({ message: 'bots-seva-assistant-reminder is up!'});
 });
 
+// NOTE: The port does not matter when deployed to Now
 app.listen(config.port, () => {
     console.log(`bots-seva-assistant-reminder is running on port ${config.port}`);
 });
