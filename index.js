@@ -1,6 +1,6 @@
 const express = require('express');
 const config = require('./config/config.json');
-const bot = require('./bot/command');
+const bot = require('./bot/commands');
 
 const app = express();
 
