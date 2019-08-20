@@ -2,27 +2,29 @@ const axios = require('axios');
 const config = require('../config/config.json');
 
 // Sends a message
-const sendMessage = (msg) => {
+const sendMessage = async (msg) => {
     const url = `https://api.telegram.org/bot${config.botKey}/sendMessage`;
-    botAction(url, msg, "SEND MESSAGE");
+    await botAction(url, msg, "SEND MESSAGE");
 };
 
 // Send a poll
-const sendPoll = (poll) => {
+const sendPoll = async (poll) => {
     const url = `https://api.telegram.org/bot${config.botKey}/sendPoll`;
-    botAction(url, poll, "SEND POLL");
+    await botAction(url, poll, "SEND POLL");
 };
 
 // Trigger a bot action
-const botAction = (url, body, actionType) => {
+const botAction = async (url, body, actionType) => {
     console.log(`Action: ${actionType}, Contents: ${JSON.stringify(body)}`);
 
-    axios.post(url, msg)
+    await axios.post(url, body)
         .then(response => {
             console.log(`Bot action successfully completed. Response Code: ${response.status}, Text: ${response.statusText}`);
+            return response;
         })
         .catch(err => {
             console.log(`Error sending bot action: ${err}`);
+            return err;
         });
 };
 
