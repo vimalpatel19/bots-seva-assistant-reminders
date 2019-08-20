@@ -1,30 +1,33 @@
 const config = require('../config/config.json');
 const bot = require('../bot/commands');
+const db = require('../services/database');
+const Schedule = require('../models/schedule');
+const helper = require('./helper');
 
 // Complete the appropriate processing for schedules that need to be acted upon
 const processSchedules = async () => {
+    // Connect to the database 
+    await db.connectToDatabase();
 
-    // TODO: Remove mock and replace with schedules from Mongo
-    let schedules = [
-        // {
-        //     "day": 2,
-        //     "type": "sendMessage",
-        //     "name": "BM Weekly Call",
-        //     "desciption": "weeklyCall",
-        //     "status": "triggered"
-        // },
-        {
-            "day": 2,
-            "type": "sendPoll",
-            "name": "BM Weekly Call",
-            "desciption": "weeklyCall",
-            "status": "triggered"
-        }
-    ];
+    // Retrieve schedules from the database
+    const dayNum = await helper.getDayNum(new Date());
+    let schedules = await Schedule.find({ day: dayNum, status: "idle"});
 
-    await triggerBotActions(schedules);
+    console.log(`Schedules retrieved: ${schedules}`);
 
-    console.log("Completed processing all schedules");
+    if (schedules.length > 0) {
+        // Trigger bot actions as needed for each schedule
+        await triggerBotActions(schedules);
+        return "Completed processing all schedules";
+    }
+    else {
+        return "No schedules to process at this time";
+    }
+};
+
+// TODO: Need to implement
+const cleanupSchedules = async () => {
+
 };
 
 // Call triggerBotAction for all schedules that need to be processed
@@ -42,11 +45,11 @@ const triggerBotAction = async (schedule) => {
 
     switch (schedule.type) {
         case "sendMessage":
-            obj = await getSendMessageObj(schedule.desciption);
+            obj = await getSendMessageObj(schedule.description);
             await bot.sendMessage(obj);
             break;
         case "sendPoll":
-            obj = await getSendPollObj(schedule.desciption);
+            obj = await getSendPollObj(schedule.description);
             await bot.sendPoll(obj);
             break;
         default:
@@ -62,12 +65,18 @@ const getSendMessageObj = (description) => {
     };
 
     // Create the appropriate reminder message based on the description
-    switch (description) {
-        case "weeklyCall":
-            messageObj.text = "Jai Swaminarayan guys! Reminder that we will be having our weekly call *today at 9PM*";
+    switch (description) {    
+        case "sabhaFollowUp":
+            messageObj.text = "*Sabha Sanchalaks*\nWe can getting close to Sunday. Please follow-up with the assigned presenters for this week to make sure that they are ready for sabha!";
             break;
-        default:
-            messageObj.text = "Jai Swaminarayan guys! I wanted to remind you guys about something but forgot what it was :(";
+
+        case "sabhaSummary":
+            messageObj.text = "*Sabha Sanchalaks*\nFriendly reminder to send out last sabha's summary to parents if you haven't already done so!";
+            break;
+
+        case "sabhaAssignments":
+            messageObj.text = "*Sabha Sanchalaks*\nIf you haven't done already, please assign presentations for our upcoming sabha ASAP! The faster you assign it, the more time the presenter will have to prepare!";
+            break;
     }
 
     return messageObj;

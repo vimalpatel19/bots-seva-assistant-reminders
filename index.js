@@ -7,8 +7,9 @@ const app = express();
 // Health check endpoint
 app.get('/', (req, res) => {
     scheduling.processSchedules()
-        .then(() => {
-            res.status(200).json({ message: "Processing schedules" });
+        .then((msg) => {
+            console.log(msg);
+            res.status(200).json({ message: msg });
         })
         .catch((err) => {
             console.log(`Error processing schedules: ${err.message}`);
