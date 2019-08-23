@@ -18,13 +18,29 @@ const scheduleSchema = new Schema({
         type: Number,
         required: true
     },
+    chatId: {
+        type: Number,
+        required: true
+    },
+    confirmations: {
+        type: Number,
+        required: false
+    },
     status: {
         type: String,
         required: true
     },
     lastTriggered: {
         type: Date,
-        required: true
+        required: false
+    },
+    lastMessageId: {
+        type: Number,
+        required: false
+    },
+    confirmationCount: {
+        type: Number,
+        required: false
     }
 });
 

@@ -11,9 +11,9 @@ const processSchedules = async () => {
 
     // Retrieve schedules from the database
     const dayNum = await helper.getDayNum(new Date());
-    let schedules = await Schedule.find({ day: dayNum, status: "idle"});
+    let schedules = await Schedule.find({ day: dayNum, status: { $ne: "complete"}});
 
-    console.log(`Schedules retrieved: ${schedules}`);
+    // console.log(`Schedules retrieved: ${schedules}`);
 
     if (schedules.length > 0) {
         // Trigger bot actions as needed for each schedule
@@ -34,7 +34,8 @@ const cleanupSchedules = async () => {
 const triggerBotActions = async (schedules) => {
 
     for (const schedule of schedules) {
-        await triggerBotAction(schedule);
+        let result = await triggerBotAction(schedule);
+        await processBotResponse(schedule, result);
         console.log(`Completed processing ${schedule.name} schedule`);
     }
 };
@@ -42,19 +43,37 @@ const triggerBotActions = async (schedules) => {
 // Trigger the appropriate bot action based on the schedule type
 const triggerBotAction = async (schedule) => {
     let obj;
+    let result = null;
 
     switch (schedule.type) {
         case "sendMessage":
             obj = await getSendMessageObj(schedule.description);
-            await bot.sendMessage(obj);
+            result = await bot.sendMessage(obj);
             break;
         case "sendPoll":
             obj = await getSendPollObj(schedule.description);
-            await bot.sendPoll(obj);
+            result = await bot.sendPoll(obj);
             break;
         default:
             console.log("Unsupported schedule type");
     }
+    return result;
+};
+
+
+// Process the result returned from triggerBotAction method
+const processBotResponse = async (schedule, result) => {
+    schedule.lastTriggered = new Date();
+
+    if (result instanceof Error) {
+        schedule.status = "errored";
+    } else {
+        schedule.status = "triggered";
+        schedule.lastMessageId = result.message_id;
+    }
+
+    await Schedule.updateOne({_id: schedule._id}, schedule);
+    console.log("Completed processing bot response");
 };
 
 // Get the object required to perform the sendMessage action
@@ -88,6 +107,8 @@ const getSendPollObj = (desciption) => {
     };
 
     switch(desciption) {
+
+        // TODO: Will change question if schedule is in retry status
         case "weeklyCall":
             pollObj.question = "Jai Swaminarayan guys! Are you available for this week's call at 9PM tonight?";
             pollObj.options = ["Yes", "No"];

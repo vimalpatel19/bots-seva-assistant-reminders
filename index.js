@@ -17,6 +17,11 @@ app.get('/', (req, res) => {
         });
 });
 
+// TODO: Implement setting schedule status to retry
+app.get('/retry/:scheduleName', (req, res) => {
+
+});
+
 // NOTE: The port does not matter when deployed to Now
 app.listen(config.port, () => {
     console.log(`bots-seva-assistant-reminder is running on port ${config.port}`);
