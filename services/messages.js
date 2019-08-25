@@ -14,7 +14,7 @@ const getMessage = (status, description) => {
                 break;
             
             case MSG_SABHA_FOLLOW_UP:
-                msg = "*Sabha Sanchalaks*\nWe can getting close to Sunday. Please follow-up with the assigned presenters for this week to make sure that they are ready for sabha!";
+                msg = "*Sabha Sanchalaks*\nWe are getting close to Sunday. Please follow-up with the assigned presenters for this week to make sure they are ready for sabha!";
                 break;
 
             case MSG_SABHA_SUMMARY:
