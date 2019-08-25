@@ -1,6 +1,7 @@
 const config = require('../config/config.json');
 const bot = require('../bot/commands');
 const db = require('../services/database');
+const messages = require('./messages');
 const Schedule = require('../models/schedule');
 const helper = require('./helper');
 
@@ -11,7 +12,7 @@ const processSchedules = async () => {
 
     // Retrieve schedules from the database
     const dayNum = await helper.getDayNum(new Date());
-    let schedules = await Schedule.find({ day: dayNum, status: { $ne: "complete"}});
+    let schedules = await Schedule.find({ day: dayNum, status: { $ne: "completed"}});
 
     // console.log(`Schedules retrieved: ${schedules}`);
 
@@ -26,8 +27,28 @@ const processSchedules = async () => {
 };
 
 // TODO: Need to implement
-const cleanupSchedules = async () => {
+const resetSchedules = async () => {
+    // Connect to the database 
+    await db.connectToDatabase();
 
+    // Get list of schedules that need to be reset
+    const dayNum = await helper.getDayNum(new Date(), 3);
+    let schedules = await Schedule.find({ day: dayNum });
+
+
+    // Update the status back to idle for each of them
+    if (schedules.length > 0) {
+        for (const schedule of schedules) {
+            schedule.status = "idle";
+            await Schedule.updateOne({_id: schedule._id}, schedule);
+            console.log(`Completed resetting ${schedule.name} schedule`);
+        }
+        return "Completed reseting all schedules";
+
+    }
+    else {
+        return "No schedules to reset at this time";
+    }
 };
 
 // Call triggerBotAction for all schedules that need to be processed
@@ -47,11 +68,11 @@ const triggerBotAction = async (schedule) => {
 
     switch (schedule.type) {
         case "sendMessage":
-            obj = await getSendMessageObj(schedule.description);
+            obj = await getSendMessageObj(schedule);
             result = await bot.sendMessage(obj);
             break;
         case "sendPoll":
-            obj = await getSendPollObj(schedule.description);
+            obj = await getSendPollObj(schedule);
             result = await bot.sendPoll(obj);
             break;
         default:
@@ -69,6 +90,11 @@ const processBotResponse = async (schedule, result) => {
         schedule.status = "errored";
     } else {
         schedule.status = "triggered";
+
+        // Update status to completed for "sendPoll" schedules
+        if (schedule.type === "sendPoll") {
+            schedule.status = "completed";
+        }
         schedule.lastMessageId = result.message_id;
     }
 
@@ -77,47 +103,38 @@ const processBotResponse = async (schedule, result) => {
 };
 
 // Get the object required to perform the sendMessage action
-const getSendMessageObj = (description) => {
+const getSendMessageObj = (schedule) => {
     let messageObj = {
-        chat_id: config.chatId,
-        parse_mode: "Markdown"
+        chat_id: schedule.chatId,
+        parse_mode: "Markdown",
+        text: messages.getMessage(schedule.status, schedule.description)
     };
-
-    // Create the appropriate reminder message based on the description
-    switch (description) {    
-        case "sabhaFollowUp":
-            messageObj.text = "*Sabha Sanchalaks*\nWe can getting close to Sunday. Please follow-up with the assigned presenters for this week to make sure that they are ready for sabha!";
-            break;
-
-        case "sabhaSummary":
-            messageObj.text = "*Sabha Sanchalaks*\nFriendly reminder to send out last sabha's summary to parents if you haven't already done so!";
-            break;
-
-        case "sabhaAssignments":
-            messageObj.text = "*Sabha Sanchalaks*\nIf you haven't done already, please assign presentations for our upcoming sabha ASAP! The faster you assign it, the more time the presenter will have to prepare!";
-            break;
-    }
 
     return messageObj;
 };
 
-const getSendPollObj = (desciption) => {
+// Get the object required to perform the sendPoll action
+const getSendPollObj = (schedule) => {
     let pollObj = {
-        chat_id: config.chatId,
+        chat_id: schedule.chatId,
+        pollObj: ["Yes", "No"],
+        question: getMessage(schedule.status, schedule.desciption)
     };
 
-    switch(desciption) {
+    return pollObj;
+};
 
-        // TODO: Will change question if schedule is in retry status
-        case "weeklyCall":
-            pollObj.question = "Jai Swaminarayan guys! Are you available for this week's call at 9PM tonight?";
-            pollObj.options = ["Yes", "No"];
-            break;
-    }
+// Get the object required to perform the stopPoll action
+const getStopPollObj = (schedule) => {
+    let pollObj = {
+        chat_id: schedule.chatId,
+        message_id: lastMessageId
+    };
 
     return pollObj;
 };
 
 module.exports = {
-    processSchedules
+    processSchedules,
+    resetSchedules
 };

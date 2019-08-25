@@ -17,6 +17,14 @@ const sendPoll = async (poll) => {
     return response;
 };
 
+// Stop a poll
+const stopPoll = async (poll) => {
+    const url = `https://api.telegram.org/bot${config.botKey}/stopPoll`;
+
+    let response = await botAction(url, poll, "STOP POLL");
+    return response;
+};
+
 // Trigger a bot action
 const botAction = async (url, body, actionType) => {
     console.log(`Action: ${actionType}, Contents: ${JSON.stringify(body)}`);
