@@ -7,8 +7,10 @@ const helper = require('./helper');
 
 // Complete the appropriate processing for schedules that need to be acted upon
 const processSchedules = async () => {
+    let returnMsg;
+
     // Connect to the database 
-    await db.connectToDatabase();
+    await db.connect();
 
     // Retrieve schedules from the database
     const dayNum = await helper.getDayNum(new Date());
@@ -19,17 +21,24 @@ const processSchedules = async () => {
     if (schedules.length > 0) {
         // Trigger bot actions as needed for each schedule
         await triggerBotActions(schedules);
-        return "Completed processing all schedules";
+        returnMsg = "Completed processing all schedules";
     }
     else {
-        return "No schedules to process at this time";
+        returnMsg = "No schedules to process at this time";
     }
+
+    // Close database connection
+    await db.disconnect();
+
+    return returnMsg;
 };
 
-// TODO: Need to implement
+// Reset schedules that need to be reset
 const resetSchedules = async () => {
+    let returnMsg;
+
     // Connect to the database 
-    await db.connectToDatabase();
+    await db.connect();
 
     // Get list of schedules that need to be reset
     const dayNum = await helper.getDayNum(new Date(), 3);
@@ -37,18 +46,29 @@ const resetSchedules = async () => {
 
 
     // Update the status back to idle for each of them
-    if (schedules.length > 0) {
+    if (schedules && schedules.length > 0) {
         for (const schedule of schedules) {
+            // Update confirmationCount to 0 if the schedule has a count
+            if (schedule.confirmationCount) {
+                schedule.confirmationCount = 0;
+            }
+
             schedule.status = "idle";
+
             await Schedule.updateOne({_id: schedule._id}, schedule);
             console.log(`Completed resetting ${schedule.name} schedule`);
         }
-        return "Completed reseting all schedules";
+        returnMsg = "Completed reseting all schedules";
 
     }
     else {
-        return "No schedules to reset at this time";
+        returnMsg = "No schedules to reset at this time";
     }
+
+    // Close database connection
+    await db.disconnect();
+
+    return returnMsg;
 };
 
 // Call triggerBotAction for all schedules that need to be processed
@@ -88,14 +108,23 @@ const processBotResponse = async (schedule, result) => {
 
     if (result instanceof Error) {
         schedule.status = "errored";
-    } else {
-        schedule.status = "triggered";
-
-        // Update status to completed for "sendPoll" schedules
-        if (schedule.type === "sendPoll") {
+    } 
+    else {
+        // Set status to completed for schedules that do not need confirmations
+        if (!schedule.confirmations) {
             schedule.status = "completed";
+            schedule.lastMessageId = result.message_id;
         }
-        schedule.lastMessageId = result.message_id;
+        // Update schedule with "sendPoll" description
+        else if (schedule.type === "sendPoll") {
+            schedule.status = "completed";
+            schedule.lastMessageId = result.poll.id;       
+        } 
+        // Otherwise update for schedules with other descriptions as below
+        else {
+            schedule.status = "triggered";
+            schedule.lastMessageId = result.message_id;
+        }
     }
 
     await Schedule.updateOne({_id: schedule._id}, schedule);
@@ -117,8 +146,8 @@ const getSendMessageObj = (schedule) => {
 const getSendPollObj = (schedule) => {
     let pollObj = {
         chat_id: schedule.chatId,
-        pollObj: ["Yes", "No"],
-        question: getMessage(schedule.status, schedule.desciption)
+        options: ["Yes", "No"],
+        question: messages.getMessage(schedule.status, schedule.description)
     };
 
     return pollObj;
@@ -134,7 +163,70 @@ const getStopPollObj = (schedule) => {
     return pollObj;
 };
 
+// Process reply message from a bot for schedule
+const processReplyMessageForSchedule = async (msg) => {
+    let replyMsg = msg.reply_to_message;
+
+    // Connect to the database 
+    await db.connect();
+
+    // Find the matching schedule from database
+    let schedule = Schedule.findOne({ lastMessageId: replyMsg.message_id});
+
+    // Update schedule if it tracks confirmations and hasn't been completed
+    if (schedule && schedule.status !== "completed" && schedule.confirmationCount) {
+        schedule.confirmationCount++;
+
+        // Also change status if enough confirmations have been receieved
+        if (schedule.confirmationCount >= schedule.confirmations) {
+            schedule.status = "completed";
+        }
+
+        await Schedule.updateOne({_id: schedule._id}, schedule);
+    }
+    else {
+        console.log("No action taken as the schedule does not track confirmations");   
+    }
+
+    // TOOD: Call bot command to perform the appropriate action
+
+    // Close database connection
+    await db.disconnect();
+};
+
+
+const processPollForSchedule = async (poll) => {
+    // Connect to the database 
+    await db.connect();
+
+    // Find the matching schedule from database
+    let schedule = Schedule.findOne({ lastMessageId: poll.id});
+
+    // TODO: Update the poll schedule accordingly
+    if (schedule && schedule.description === "weeklyCall") {
+        let no = helper.getPollOptionCount(poll.options, "no");
+
+        // If more than one no received, set status to retry and close poll
+        if (no > schedule.confirmations) {
+            await bot.stopPoll({ chat_id: messages.chatId, message_id: schedule.lastMessageId});
+
+            schedule.status = "retry";
+            await Schedule.updateOne({_id: schedule._id}, schedule);
+        }
+    }
+    else if (schedule) {
+        console.log("Only weekly call polls are currently supported");
+    }
+
+    // TOOD: Call bot command to perform the appropriate action
+
+    // Close database connection
+    await db.disconnect();    
+};
+
 module.exports = {
     processSchedules,
-    resetSchedules
+    resetSchedules,
+    processReplyMessageForSchedule,
+    processPollForSchedule
 };

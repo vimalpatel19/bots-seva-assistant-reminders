@@ -1,11 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const config = require('./config/config.json');
 const scheduling = require('./services/schedules');
 const analyzer = require('./services/analyze');
 
-const app = express();
+const port = process.env.PORT;
 
+const app = express();
 app.use(bodyParser.json());
 
 // Health check endpoint
@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
 });
 
 // Trigger schedules endpoint
-app.post('/schedules/trigger', (req, res) => {
+app.post('/schedules', (req, res) => {
     scheduling.processSchedules()
         .then((msg) => {
             console.log(msg);
@@ -27,7 +27,7 @@ app.post('/schedules/trigger', (req, res) => {
 });
 
 // Reset schedules endpoint
-app.post('/schedules/reset', (req, res) => {
+app.put('/schedules', (req, res) => {
     scheduling.resetSchedules()
         .then((msg) => {
             console.log(msg);
@@ -40,18 +40,19 @@ app.post('/schedules/reset', (req, res) => {
 });
 
 // Read message endpoint
-app.post('/read', (req, res) => {
-    if (req.body !== undefined && req.body.message !== undefined) {
-        let message = req.body.message;
-        console.log(JSON.stringify(message));
+app.post('/messages', (req, res) => {
+    if (req.body) {
+        res.status(200).end();
+
+        let message = req.body;
+        console.log(`Incoming message: ${JSON.stringify(message)}`);
 
         analyzer.processMessage(message)
-            .then((msg) => {
-                res.status(200).json({ message: msg });
+            .then(() => {
+                console.log(`Analyzed message successfully`);
             })
             .catch((err) => {
                 console.log(`Error analyzing message: ${err.message}`);
-                res.status(500).json({ error: `Error analyzing message: ${err.message}` });
             });
     }
     else {
@@ -60,8 +61,8 @@ app.post('/read', (req, res) => {
 });
 
 
-app.listen(config.port, () => {
-    console.log(`bots-seva-assistant-reminder is running on port ${config.port}`);
+app.listen(port, () => {
+    console.log(`bots-seva-assistant-reminder is running on port ${port}`);
 });
 
 

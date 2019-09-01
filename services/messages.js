@@ -22,7 +22,7 @@ const getMessage = (status, description) => {
                 break;
 
             case MSG_WEEKLY_CALL:
-                msg = "Jai Swaminarayan karyakars! Are you available for this week's call at 9PM tonight?";
+                msg = "Jai Swaminarayan karyakars! Are you available for this week's call at 8PM tonight?";
                 break;
         }
     }
@@ -37,12 +37,17 @@ const getMessage = (status, description) => {
                 break;
 
             case MSG_WEEKLY_CALL:
-                msg = "Let's re-schedule since most of the karyakars cannot make it! How about 9PM tomorrow evening instead?";
+                msg = "Let's re-schedule since at least some of the karyakars cannot make it! How about 8PM tomorrow evening instead?";
                 break;
         }
     }
 
     return msg;
+};
+
+// TODO: Need to implement
+const getReplyMessage = (msg) => {
+
 };
 
 module.exports = {

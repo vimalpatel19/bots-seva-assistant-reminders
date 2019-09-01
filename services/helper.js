@@ -18,6 +18,20 @@ const getDayNum = (date, days) => {
     return -1;
 }
 
+// Returns the count for the given option from the list of poll options
+const getPollOptionCount = (list, optionLabel) => {
+
+    for (const option of list) {
+        if (option.text.toLowerCase() === optionLabel.toLowerCase()) {
+            return option.voter_count;
+        }
+    }
+
+    // Default value if the provided option was not found
+    return 0;
+};
+
 module.exports = {
-    getDayNum
+    getDayNum,
+    getPollOptionCount
 };

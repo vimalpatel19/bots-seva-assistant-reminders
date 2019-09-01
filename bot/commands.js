@@ -42,5 +42,6 @@ const botAction = async (url, body, actionType) => {
 
 module.exports = {
     sendMessage,
-    sendPoll
+    sendPoll,
+    stopPoll
 }
