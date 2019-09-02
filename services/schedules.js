@@ -12,11 +12,32 @@ const processSchedules = async () => {
     // Connect to the database 
     await db.connect();
 
-    // Retrieve schedules from the database
+    // Setup the database query
     const dayNum = await helper.getDayNum(new Date());
-    let schedules = await Schedule.find({ day: dayNum, status: { $ne: "completed"}});
+    const query = {
+        $or: [
+            {
+                $and: [
+                    { status: "idle" },
+                    { day: dayNum }
+                ]
+            },
+            {
+                $and: [
+                    {status: "triggered" },
+                    { day: { $ne: dayNum } }
+                ]
+            },
+            {
+                status: "rety"
+            }
+        ]
+    };
 
-    // console.log(`Schedules retrieved: ${schedules}`);
+    // Retrieve schedules from the database
+    let schedules = await Schedule.find(query);
+
+    console.log(`Schedules retrieved: ${schedules}`);
 
     if (schedules.length > 0) {
         // Trigger bot actions as needed for each schedule
@@ -132,33 +153,39 @@ const processBotResponse = async (schedule, result) => {
 };
 
 // Get the object required to perform the sendMessage action
-const getSendMessageObj = (schedule) => {
+const getSendMessageObj = (schedule, defaultText = null, replyId = null) => {
     let messageObj = {
         chat_id: schedule.chatId,
         parse_mode: "Markdown",
-        text: messages.getMessage(schedule.status, schedule.description)
     };
+
+    if (defaultText === null) {
+        messageObj.text = messages.getMessage(schedule.status, schedule.description);
+    } 
+    else {
+        messageObj.text = defaultText;
+    }
+
+    if (replyId !== null) {
+        messageObj.reply_to_message_id = replyId;
+    }
 
     return messageObj;
 };
 
 // Get the object required to perform the sendPoll action
-const getSendPollObj = (schedule) => {
+const getSendPollObj = (schedule, defaultQuestion = null) => {
     let pollObj = {
         chat_id: schedule.chatId,
         options: ["Yes", "No"],
-        question: messages.getMessage(schedule.status, schedule.description)
     };
 
-    return pollObj;
-};
-
-// Get the object required to perform the stopPoll action
-const getStopPollObj = (schedule) => {
-    let pollObj = {
-        chat_id: schedule.chatId,
-        message_id: lastMessageId
-    };
+    if (defaultQuestion === null) {
+        pollObj.question = messages.getMessage(schedule.status, schedule.description);
+    }
+    else {
+        pollObj.question = defaultQuestion;
+    }
 
     return pollObj;
 };
@@ -171,24 +198,34 @@ const processReplyMessageForSchedule = async (msg) => {
     await db.connect();
 
     // Find the matching schedule from database
-    let schedule = Schedule.findOne({ lastMessageId: replyMsg.message_id});
+    let foundSchedule = await Schedule.findOne({ lastMessageId: replyMsg.message_id});
 
     // Update schedule if it tracks confirmations and hasn't been completed
-    if (schedule && schedule.status !== "completed" && schedule.confirmationCount) {
-        schedule.confirmationCount++;
+    if (foundSchedule && foundSchedule.status !== "completed" && foundSchedule.confirmations) {
+        foundSchedule.confirmationCount++;
+
+        let defaultText = null;
 
         // Also change status if enough confirmations have been receieved
-        if (schedule.confirmationCount >= schedule.confirmations) {
-            schedule.status = "completed";
+        if (foundSchedule.confirmationCount >= foundSchedule.confirmations) {
+            foundSchedule.status = "completed";
+
+            // TODO: Send message that all confirmations have been received
+            defaultText = "Thank you for the responses guys!";
+        } 
+        else {
+            // TODO: Send message that more confirmations are still needed
+            defaultText = "Thank you for the response! I believe I still need a response from other karyakar(s) as well";
         }
 
-        await Schedule.updateOne({_id: schedule._id}, schedule);
+        let obj = await getSendMessageObj(foundSchedule, defaultText, msg.message_id);
+        await bot.sendMessage(obj);
+
+        await Schedule.updateOne({_id: foundSchedule._id}, foundSchedule);
     }
     else {
-        console.log("No action taken as the schedule does not track confirmations");   
+        console.log(`No action as confirmations are not tracked for schedule`);   
     }
-
-    // TOOD: Call bot command to perform the appropriate action
 
     // Close database connection
     await db.disconnect();
@@ -200,25 +237,23 @@ const processPollForSchedule = async (poll) => {
     await db.connect();
 
     // Find the matching schedule from database
-    let schedule = Schedule.findOne({ lastMessageId: poll.id});
+    let foundSchedule = await Schedule.findOne({ lastMessageId: poll.id});
 
     // TODO: Update the poll schedule accordingly
-    if (schedule && schedule.description === "weeklyCall") {
+    if (foundSchedule && foundSchedule.description === "weeklyCall") {
         let no = helper.getPollOptionCount(poll.options, "no");
 
         // If more than one no received, set status to retry and close poll
-        if (no > schedule.confirmations) {
-            await bot.stopPoll({ chat_id: messages.chatId, message_id: schedule.lastMessageId});
+        if (no > foundSchedule.confirmationCount) {
+            await bot.stopPoll({ chat_id: messages.chatId, message_id: foundSchedule.lastMessageId});
 
-            schedule.status = "retry";
-            await Schedule.updateOne({_id: schedule._id}, schedule);
+            foundSchedule.status = "retry";
+            await Schedule.updateOne({_id: foundSchedule._id}, foundSchedule);
         }
     }
-    else if (schedule) {
+    else if (foundSchedule) {
         console.log("Only weekly call polls are currently supported");
     }
-
-    // TOOD: Call bot command to perform the appropriate action
 
     // Close database connection
     await db.disconnect();    

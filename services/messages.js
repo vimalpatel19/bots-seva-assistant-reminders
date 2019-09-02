@@ -29,11 +29,11 @@ const getMessage = (status, description) => {
     else if (status === "triggered" || status === "retry") {
         switch(description) {
             case MSG_SABHA_ASSIGNMENT:
-                msg = "I haven't heard back from all sabha sanchalaks! *Please reply back if you have assigned presentations for your group*";
+                msg = "I haven't heard back from all sabha sanchalaks! *Please reply back with 'Yes' if you have assigned presentations for your group*";
                 break;
 
             case MSG_SABHA_SUMMARY:
-                msg = "I haven't received confirmation that all sabha summaries have been sent out. *Please reply back if you have sent out last week's sabha summary for your group!*";
+                msg = "I haven't received confirmation that all sabha summaries have been sent out. *Please reply back with 'Yes' if you have sent out last week's sabha summary for your group!*";
                 break;
 
             case MSG_WEEKLY_CALL:
@@ -43,11 +43,6 @@ const getMessage = (status, description) => {
     }
 
     return msg;
-};
-
-// TODO: Need to implement
-const getReplyMessage = (msg) => {
-
 };
 
 module.exports = {
