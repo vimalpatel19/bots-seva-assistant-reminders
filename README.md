@@ -1,12 +1,12 @@
 # EternalSTL - Seva Assistant Bot for Reminders
-This project has been designed to assist with automating trivial and re-occuring seva reminders through the incorporation of [Telegram Bots](https://core.telegram.org/bots). Using this project requires 
-1. Setting up a group chat/message room in Telegram or an individual chat with the `Seva Assistant` Bot (Username: @eSTL_seva_assistant_bot).
-2. Contacting admin users of this project to setup the reminders for your needs.
+This project has been designed to assist with automating trivial and re-occuring seva reminders through the incorporation of [Telegram Bots](https://core.telegram.org/bots). 
 
 In additional to sending out reminders, this project allows for basic tracking of task completion for reminders that do require repeat reminders in the event that the associated task(s) for a given reminder are not completed by analyzing the messages sent to the Bot.
 
 ### Getting Started
-//TODO: This section needs to be documented.
+Using this project requires:
+1. Setting up a group chat/message room in Telegram or an individual chat with the `Seva Assistant` Bot (Username: @eSTL_seva_assistant_bot).
+2. Contacting admin users of this project to setup the reminders for your needs.
 
 ### Functionality Details
 Current functionality entails the following:
