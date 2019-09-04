@@ -25,11 +25,11 @@ const processSchedules = async () => {
             {
                 $and: [
                     {status: "triggered" },
-                    { day: { $ne: dayNum } }
+                    { day: { $lt: helper.getToday() } }
                 ]
             },
             {
-                status: "rety"
+                status: "retry"
             }
         ]
     };
@@ -210,11 +210,11 @@ const processReplyMessageForSchedule = async (msg) => {
         if (foundSchedule.confirmationCount >= foundSchedule.confirmations) {
             foundSchedule.status = "completed";
 
-            // TODO: Send message that all confirmations have been received
+            // Send message that all confirmations have been received
             defaultText = "Thank you for the responses guys!";
         } 
         else {
-            // TODO: Send message that more confirmations are still needed
+            // Send message that more confirmations are still needed
             defaultText = "Thank you for the response! I believe I still need a response from other karyakar(s) as well";
         }
 
@@ -239,7 +239,7 @@ const processPollForSchedule = async (poll) => {
     // Find the matching schedule from database
     let foundSchedule = await Schedule.findOne({ lastMessageId: poll.id});
 
-    // TODO: Update the poll schedule accordingly
+    // Update the poll schedule accordingly
     if (foundSchedule && foundSchedule.description === "weeklyCall") {
         let no = helper.getPollOptionCount(poll.options, "no");
 
